@@ -1,3 +1,4 @@
+import { explicitWorkerCount } from '../src/utils/requestCount.js';
 import type { GeminiInterpretation, JobRequirements, ServiceCategory } from '../src/types/index.js';
 
 /**
@@ -62,6 +63,9 @@ export function deterministicParse(
       workerCount = 4; // default demo crew
     }
   }
+
+  const explicitCount = explicitWorkerCount(userMessage, category === 'harvesting' && !!currentReq?.budgetKes);
+  if (explicitCount !== null && category === 'harvesting') workerCount = explicitCount;
 
   // Date and Time detection
   let requestedDate: string | null = currentReq?.requestedDate || null;
@@ -223,6 +227,9 @@ Rules:
     }
 
     const parsed = JSON.parse(candidateText);
+    const latest = conversation.filter(c => c.role === 'user').pop()?.text || '';
+    const explicitCount = explicitWorkerCount(latest, (currentReq?.category === 'harvesting') && !!currentReq?.budgetKes);
+    if (explicitCount !== null) { parsed.workerCount = explicitCount; if (currentReq?.category && !/tv|television|appliance/i.test(latest)) parsed.category = currentReq.category; }
 
     // Validate structured fields
     const validCategory = parsed.category === 'tv_repair' || parsed.category === 'harvesting' ? parsed.category : null;
