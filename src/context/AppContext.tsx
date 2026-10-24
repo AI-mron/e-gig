@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type {
   JobRequirements,
@@ -8,6 +8,7 @@ import type {
   ServiceCategory
 } from '../types';
 import { WORKERS } from '../data/workers';
+import { explicitWorkerCount } from '../utils/requestCount';
 import { matchWorkers } from '../utils/matching';
 import { calculatePricing } from '../utils/pricing';
 import { getTomorrowShortLabel, getNextSaturdayShortLabel } from '../utils/dates';
@@ -143,8 +144,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       });
   }, []);
 
+  const requestSequence = useRef(0);
+
   const updateRequirements = (updates: Partial<JobRequirements>) => {
-    setRequirements(prev => ({ ...prev, ...updates }));
+    requestSequence.current++;
+    setIsLoadingAi(false);
+    const next = { ...requirements, ...updates };
+    setRequirements(next);
+    setSelectedWorkerIds(matchWorkers(next).suggestedCrewIds);
   };
 
   const addMessage = (
@@ -191,6 +198,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const startNewRequest = () => {
+    requestSequence.current++;
+    setIsLoadingAi(false);
     setRequirements(defaultRequirements);
     setMessages([initialWelcomeMessage]);
     setSelectedWorkerIds([]);
@@ -203,6 +212,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Helper to call backend /api/interpret
   const callInterpretApi = async (userPrompt: string, updatedReq: JobRequirements) => {
+    const sequence = ++requestSequence.current;
     setIsLoadingAi(true);
     try {
       const convoHistory = [
@@ -227,7 +237,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       const data = await res.json();
+      if (sequence !== requestSequence.current) return;
       const interp = data.interpretation;
+      const explicitCount = explicitWorkerCount(userPrompt, updatedReq.category === 'harvesting' && !!updatedReq.budgetKes);
+      if (explicitCount !== null) { interp.workerCount = explicitCount; if (updatedReq.category && !/tv|television|appliance/i.test(userPrompt)) interp.category = updatedReq.category; }
 
       // Merge into requirements
       const merged: JobRequirements = {
@@ -263,13 +276,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addMessage('assistant', `Your budget is below the minimum for ${merged.workerCount} worker(s). The minimum including the customer fee is KSh ${matches.minimumPossibleBudgetKes.toLocaleString('en-KE')}. Please adjust your budget or requirements.`);
       }
     } catch (err) {
+      if (sequence !== requestSequence.current) return;
       console.error('Interpret failed:', err);
       addMessage(
         'assistant',
         'Could not reach AI assistant. Switched to guided demo mode — you can also adjust the fields on the right directly.'
       );
     } finally {
-      setIsLoadingAi(false);
+      if (sequence === requestSequence.current) setIsLoadingAi(false);
     }
   };
 
