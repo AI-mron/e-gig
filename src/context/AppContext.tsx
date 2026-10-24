@@ -8,6 +8,7 @@ import type {
   ServiceCategory
 } from '../types';
 import { WORKERS } from '../data/workers';
+import { matchWorkers } from '../utils/matching';
 import { calculatePricing } from '../utils/pricing';
 import { getTomorrowShortLabel, getNextSaturdayShortLabel } from '../utils/dates';
 
@@ -255,15 +256,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addMessage('assistant', 'I found available harvesting workers in Nakuru. Rates cover one-day labour with a crew leader.');
       }
 
-      // Auto pre-select matches if empty selection
-      if (selectedWorkerIds.length === 0) {
-        if (merged.category === 'tv_repair') {
-          // Preselect Daniel Mwangi
-          setSelectedWorkerIds(['daniel-mwangi']);
-        } else if (merged.category === 'harvesting') {
-          // Preselect 4 workers with leader James
-          setSelectedWorkerIds(['james-kiplangat', 'mary-wanjiku', 'peter-otieno', 'ruth-achieng']);
-        }
+      // Recompute selection for every request, including changed crew size or budget.
+      const matches = matchWorkers(merged);
+      setSelectedWorkerIds(interp.clarificationQuestion ? [] : matches.suggestedCrewIds);
+      if (!interp.clarificationQuestion && matches.isBudgetTooLow) {
+        addMessage('assistant', `Your budget is below the minimum for ${merged.workerCount} worker(s). The minimum including the customer fee is KSh ${matches.minimumPossibleBudgetKes.toLocaleString('en-KE')}. Please adjust your budget or requirements.`);
       }
     } catch (err) {
       console.error('Interpret failed:', err);
