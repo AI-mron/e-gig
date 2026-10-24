@@ -1,4 +1,4 @@
-import { GeminiInterpretation, JobRequirements, ServiceCategory } from '../src/types';
+import type { GeminiInterpretation, JobRequirements, ServiceCategory } from '../src/types/index.js';
 
 /**
  * Deterministic intent extractor for zero-latency fallback and guided demo
