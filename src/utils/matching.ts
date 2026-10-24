@@ -194,21 +194,21 @@ export function matchWorkers(requirements: JobRequirements): MatchingResult {
 
   const isBudgetTooLow = !!(budgetKes && budgetKes > 0 && budgetKes < minimumPossibleBudgetKes);
 
-  // Pre-select suggested crew if appropriate
+  // Find the highest-scoring affordable combination, preserving the requested count.
   let suggestedCrewIds: string[] = [];
-  if (category === 'tv_repair') {
-    if (eligibleWorkers.length > 0) {
-      suggestedCrewIds = [eligibleWorkers[0].worker.id];
+  let bestScore = -Infinity;
+  const choose = (start: number, chosen: MatchedWorker[]) => {
+    if (chosen.length === effectiveCount) {
+      if (category === 'harvesting' && effectiveCount > 1 && !chosen.some(m => m.worker.canLeadCrew)) return;
+      const total = Math.round(chosen.reduce((sum, m) => sum + m.effectiveRate, 0) * (1 + CUSTOMER_FEE_RATE));
+      if (budgetKes == null || total > budgetKes) return;
+      const score = chosen.reduce((sum, m) => sum + m.score, 0);
+      if (score > bestScore) { bestScore = score; suggestedCrewIds = chosen.map(m => m.worker.id); }
+      return;
     }
-  } else if (category === 'harvesting' && !isCrewInsufficient && hasLeaderAvailable) {
-    // Pick highest ranked leader, then top other eligible workers up to effectiveCount
-    const leader = eligibleWorkers.find(m => m.worker.canLeadCrew);
-    if (leader) {
-      const otherEligible = eligibleWorkers.filter(m => m.worker.id !== leader.worker.id);
-      const chosen = [leader, ...otherEligible.slice(0, effectiveCount - 1)];
-      suggestedCrewIds = chosen.map(m => m.worker.id);
-    }
-  }
+    for (let i = start; i < eligibleWorkers.length; i++) choose(i + 1, [...chosen, eligibleWorkers[i]]);
+  };
+  if (!isCrewInsufficient && !isBudgetTooLow) choose(0, []);
 
   return {
     category,

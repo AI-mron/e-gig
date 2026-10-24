@@ -50,7 +50,7 @@ export function deterministicParse(
   if (category === 'tv_repair') {
     workerCount = 1; // TV default to 1 technician
   } else {
-    const countMatch = text.match(/([0-9]+)\s*(?:harvesting\s*)?(?:workers?|people|hands?|labourers?|team)/i);
+    const countMatch = text.match(/([0-9]+)\s*(?:harvesting\s*)?(?:harvesters?|workers?|people|hands?|labourers?|team)/i);
     if (countMatch && countMatch[1]) {
       const parsedCount = parseInt(countMatch[1], 10);
       if (!isNaN(parsedCount) && parsedCount > 0) {
