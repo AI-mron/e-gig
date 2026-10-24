@@ -1,6 +1,6 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig, loadEnv, Plugin } from 'vite'
-import { interpretWithGemini } from './server/geminiService'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { interpretWithGemini } from './server/geminiService.js'
 
 function apiServerPlugin(): Plugin {
   return {
