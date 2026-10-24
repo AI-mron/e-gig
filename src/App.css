@@ -1,0 +1,39 @@
+/* e-gig specific layout & responsive overrides */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1.2s linear infinite;
+}
+
+@media (max-width: 960px) {
+  .hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .hire-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .hire-grid > div:first-child {
+    position: static !important;
+    height: 520px !important;
+  }
+  .profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .booking-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-grid {
+    gap: 32px !important;
+  }
+}
